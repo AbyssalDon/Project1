@@ -14,7 +14,8 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
       format_sql: true
 timer:
-  maxrecords: 10
+  removeTimer: 60000
+  expiry: 5
 api:
   url: http://api.quotable.io/random
 server:
