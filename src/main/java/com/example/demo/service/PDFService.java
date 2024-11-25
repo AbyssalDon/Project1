@@ -1,5 +1,8 @@
 package com.example.demo.service;
 
+import com.example.demo.Exceptions.CprNotValidException;
+import com.example.demo.Exceptions.GlobalExceptionHandler;
+import com.example.demo.Exceptions.UserNotFoundException;
 import com.example.demo.model.User;
 import com.example.demo.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +30,15 @@ import static org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_
 @RequiredArgsConstructor
 public class PDFService {
     private final UserRepository userRepository;
+    private final GlobalExceptionHandler handler;
 
     public void createPDFDocument(User user) {
+        if (user.getCpr().length() != 9)
+            throw new CprNotValidException("Cpr has is not exactly 9 digits!");
+
         UUID id = userRepository.save(user).getUserId();
         LocalDateTime currentTime = LocalDateTime.now();
+
         try (PDDocument document = new PDDocument()) {
             PDPage my_page = new PDPage();
             PDPageContentStream contentStream = new PDPageContentStream(document, my_page);
@@ -54,19 +62,19 @@ public class PDFService {
             user.setPdfname(pdfname);
             userRepository.save(user);
         } catch (IOException e) {
-            System.out.println("Document could not be created.");
+            System.out.println(e.getMessage());
         }
     }
 
-    public ResponseEntity<byte[]> getPDF(Integer cpr) {
-        User user = userRepository.findByCpr(cpr).orElseThrow(() -> new IllegalStateException("No user found"));
+    public ResponseEntity<byte[]> getPDF(String cpr) throws Exception {
         ByteArrayOutputStream arr = new ByteArrayOutputStream();
         try {
+            User user = userRepository.findByCpr(cpr).orElseThrow(() -> new UserNotFoundException("User does not exist!"));
             File file = new File("src/main/resources/" + user.getPdfname());
             PDDocument pdf = Loader.loadPDF(file);
             pdf.save(arr);
-        } catch (IOException e) {
-            System.out.println("File could not be loaded");
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
         }
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=file.pdf");
