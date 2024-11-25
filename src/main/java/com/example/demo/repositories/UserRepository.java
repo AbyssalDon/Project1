@@ -9,5 +9,6 @@ import java.util.UUID;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
-    Optional<User> findByCpr(Integer Cpr);
+    Optional<User> findByCpr(String Cpr);
+    boolean existsByCpr(String cpr);
 }

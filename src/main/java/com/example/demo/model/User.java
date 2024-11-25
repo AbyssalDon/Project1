@@ -19,7 +19,7 @@ public class User {
             strategy = GenerationType.UUID
     )
     private UUID userId;
-    private Integer cpr;
+    private String cpr;
     private String name;
     private LocalDateTime createdAt;
     private String pdfname;
