@@ -30,7 +30,6 @@ import static org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_
 @RequiredArgsConstructor
 public class PDFService {
     private final UserRepository userRepository;
-    private final GlobalExceptionHandler handler;
 
     public void createPDFDocument(User user) {
         if (user.getCpr().length() != 9)
@@ -57,7 +56,7 @@ public class PDFService {
 
             document.addPage(my_page);
             String pdfname = id + currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")) + ".pdf";
-            document.save("src/main/resources/" + pdfname);
+            document.save("src/main/resources/pdf/" + pdfname);
             user.setCreatedAt(currentTime);
             user.setPdfname(pdfname);
             userRepository.save(user);
@@ -70,7 +69,7 @@ public class PDFService {
         ByteArrayOutputStream arr = new ByteArrayOutputStream();
         try {
             User user = userRepository.findByCpr(cpr).orElseThrow(() -> new UserNotFoundException("User does not exist!"));
-            File file = new File("src/main/resources/" + user.getPdfname());
+            File file = new File("src/main/resources/pdf/" + user.getPdfname());
             PDDocument pdf = Loader.loadPDF(file);
             pdf.save(arr);
         } catch (Exception e) {
