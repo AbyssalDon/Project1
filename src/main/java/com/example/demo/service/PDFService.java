@@ -1,17 +1,20 @@
 package com.example.demo.service;
 
 import com.example.demo.Exceptions.CprNotValidException;
-import com.example.demo.Exceptions.GlobalExceptionHandler;
 import com.example.demo.Exceptions.UserNotFoundException;
 import com.example.demo.model.User;
 import com.example.demo.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
+import org.apache.pdfbox.pdmodel.interactive.form.PDField;
+import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +25,8 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Scanner;
 import java.util.UUID;
 
 import static org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName.HELVETICA_BOLD;
@@ -38,25 +43,39 @@ public class PDFService {
         UUID id = userRepository.save(user).getUserId();
         LocalDateTime currentTime = LocalDateTime.now();
 
-        try (PDDocument document = new PDDocument()) {
-            PDPage my_page = new PDPage();
-            PDPageContentStream contentStream = new PDPageContentStream(document, my_page);
+        try {
+            File file = new File("src/main/resources/template.pdf");
+            PDDocument pdf = Loader.loadPDF(file);
+            PDDocumentCatalog catalog = pdf.getDocumentCatalog();
+            PDAcroForm form = catalog.getAcroForm();
+            List<PDField> fields = form.getFields();
+            fields.get(0).setValue(user.getName());
+            fields.get(1).setValue(user.getCpr());
 
+            PDPage my_page = new PDPage();
+            PDPageContentStream contentStream = new PDPageContentStream(pdf, my_page);
             contentStream.beginText();
             contentStream.newLineAtOffset(25, 700);
             PDFont pdfFont=  new PDType1Font(HELVETICA_BOLD);
             contentStream.setFont(pdfFont, 14 );
             contentStream.setLeading(14.5f);
-
-            contentStream.showText("Name: " + user.getName());
+            contentStream.showText("Text: ");
             contentStream.newLine();
-            contentStream.showText("CPR: " + user.getCpr());
+
+            File txt = new File("src/main/resources/text.txt");
+            Scanner reader = new Scanner(txt);
+            while (reader.hasNextLine()) {
+                String text = reader.nextLine();
+                contentStream.showText(text);
+                contentStream.newLine();
+            }
+
             contentStream.endText();
             contentStream.close();
 
-            document.addPage(my_page);
+            pdf.addPage(my_page);
             String pdfname = id + currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")) + ".pdf";
-            document.save("src/main/resources/pdf/" + pdfname);
+            pdf.save("src/main/resources/pdf/" + pdfname);
             user.setCreatedAt(currentTime);
             user.setPdfname(pdfname);
             userRepository.save(user);
